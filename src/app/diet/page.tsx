@@ -6,13 +6,14 @@ import DietSetup from "@/components/DietSetup";
 import DietView from "@/components/DietView";
 import { LogoMark } from "@/components/Logo";
 import { useEntitlement } from "@/lib/entitlement";
+import { paymentsEnabled } from "@/lib/features";
 import { useProfile } from "@/lib/storage";
 
 export default function DietPage() {
   const profile = useProfile(); // undefined = loading, null = no profile saved
   const { status } = useEntitlement(); // "loading" | "free" | "plus"
 
-  if (profile === undefined || status === "loading") {
+  if (profile === undefined || (paymentsEnabled() && status === "loading")) {
     return <div className="p-8 text-center text-muted">Loading…</div>;
   }
 
@@ -30,7 +31,7 @@ export default function DietPage() {
   }
 
   // Meal plans are a Plus feature. (The workout side of the app stays free.)
-  if (status !== "plus") return <DietPaywall teen={profile.age < 18} />;
+  if (paymentsEnabled() && status !== "plus") return <DietPaywall teen={profile.age < 18} />;
 
   // Profiles made before food questions existed have no preferences yet: ask now.
   if (!profile.diet || !profile.budget) return <DietSetup profile={profile} />;

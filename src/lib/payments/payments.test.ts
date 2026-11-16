@@ -4,9 +4,13 @@ import { createHmac } from "node:crypto";
 import { PLANS, formatRupees, planById } from "./plans.ts";
 import { generateSigningKeys, signToken, verifyToken, type Entitlement } from "./token.ts";
 import { isValidSignature } from "./razorpay.ts";
-import { paymentsConfig } from "./config.ts";
+import { couponConfig, paymentsConfig } from "./config.ts";
+import { POST as redeemRoute } from "../../app/api/coupons/redeem/route.ts";
 import { POST as createOrderRoute } from "../../app/api/payments/create-order/route.ts";
 import { POST as verifyRoute } from "../../app/api/payments/verify/route.ts";
+
+// The routes refuse to work while the master switch is off, so these tests switch it on.
+process.env.NEXT_PUBLIC_PAYMENTS_ENABLED = "true";
 
 const DAY = 86_400_000;
 const SECRET = "test_secret_value";
@@ -237,4 +241,73 @@ test("mock mode works in development but a mock order is worthless in production
     const res = await verifyRoute(req({ orderId: "mock_plus_year_abc", paymentId: "pay_mock", signature: "x" }));
     assert.equal(res.status, 400);
   });
+});
+
+// ───────────── Coupons ─────────────
+
+test("coupon config: parses CODE:days pairs, ignores bad entries, is case-insensitive", () => {
+  const c = couponConfig({ COUPON_CODES: " welcome30:30 , FRIEND:14,bad,NOPE:abc,X:5,TOOLONG_" + "A".repeat(40) + ":9,ZERO:0,HUGE:9999,OK-1:1" });
+  assert.deepEqual([...c.entries()], [["WELCOME30", 30], ["FRIEND", 14], ["OK-1", 1]]);
+  assert.equal(couponConfig({}).size, 0);
+});
+
+const COUPONS = { ...LIVE, COUPON_CODES: "WELCOME30:30,FRIEND:14" };
+
+test("redeem: a valid coupon gives a signed pass for exactly the coupon's days", async () => {
+  await withEnv(COUPONS, null, async () => {
+    const before = Date.now();
+    const res = await redeemRoute(req({ code: "  welcome30 " })); // case and spaces do not matter
+    assert.equal(res.status, 200);
+    const out = await res.json();
+    assert.equal(out.days, 30);
+    const got = await verifyToken(out.token, keys.publicJwk);
+    assert.equal(got?.planId, "coupon");
+    assert.equal(got?.paymentId, "coupon:WELCOME30");
+    assert.ok(Math.abs(got!.expiresAt - before - 30 * DAY) < 5000);
+    const friend = await (await redeemRoute(req({ code: "FRIEND" }))).json();
+    assert.equal(friend.days, 14);
+  });
+});
+
+test("redeem: wrong codes and bad input are rejected with no hints", async () => {
+  await withEnv(COUPONS, null, async () => {
+    const wrong = await redeemRoute(req({ code: "WELCOME31" }));
+    assert.equal(wrong.status, 400);
+    assert.deepEqual(await wrong.json(), { error: "invalid_coupon" });
+    assert.equal((await redeemRoute(req({ code: "" }))).status, 400);
+    assert.equal((await redeemRoute(req({ code: 123 }))).status, 400);
+    assert.equal((await redeemRoute(req({ code: "A".repeat(100) }))).status, 400);
+    assert.equal((await redeemRoute(req("not json"))).status, 400);
+  });
+});
+
+test("redeem: unavailable (503) when no coupons or no signing key are configured", async () => {
+  await withEnv({ ...LIVE, COUPON_CODES: undefined }, null, async () => {
+    assert.equal((await redeemRoute(req({ code: "WELCOME30" }))).status, 503);
+  });
+  await withEnv({ ...COUPONS, PAYMENT_SIGNING_KEY_JWK: undefined }, null, async () => {
+    assert.equal((await redeemRoute(req({ code: "WELCOME30" }))).status, 503);
+  });
+});
+
+test("a coupon pass is not a purchase: it can never be mistaken for a paid plan", () => {
+  assert.equal(planById("coupon"), undefined);
+});
+
+test("payments switched off: every payment and coupon route refuses, and it is off by default", async () => {
+  const saved = process.env.NEXT_PUBLIC_PAYMENTS_ENABLED;
+  try {
+    delete process.env.NEXT_PUBLIC_PAYMENTS_ENABLED; // unset = off
+    for (const [route, body] of [
+      [createOrderRoute, { planId: "plus_month" }],
+      [verifyRoute, { orderId: "o", paymentId: "p", signature: "s" }],
+      [redeemRoute, { code: "WELCOME30" }],
+    ] as const) {
+      const res = await route(new Request("http://x/api", { method: "POST", body: JSON.stringify(body) }));
+      assert.equal(res.status, 503);
+      assert.equal((await res.json()).error, "payments_disabled");
+    }
+  } finally {
+    process.env.NEXT_PUBLIC_PAYMENTS_ENABLED = saved;
+  }
 });

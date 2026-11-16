@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
 import Header from "@/components/Header";
+import { paymentsEnabled } from "@/lib/features";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -42,9 +43,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             <Link href="/library" className="underline underline-offset-4">
               Exercise library
             </Link>
-            <Link href="/pricing" className="underline underline-offset-4">
-              Level Up Plus
-            </Link>
+            {paymentsEnabled() && (
+              <Link href="/pricing" className="underline underline-offset-4">
+                Level Up Plus
+              </Link>
+            )}
           </div>
           Level Up gives general fitness guidance, not medical advice. If you feel pain or unwell, stop and talk to a
           doctor or coach.

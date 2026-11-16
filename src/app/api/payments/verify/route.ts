@@ -4,6 +4,7 @@
 //
 // The plan and its length come from the ORDER stored at Razorpay (created by our server), never from
 // anything the browser sends, so paying for the cheap plan cannot unlock the expensive one.
+import { paymentsEnabled } from "../../../../lib/features.ts";
 import { paymentsConfig } from "../../../../lib/payments/config.ts";
 import { planById, type PlanDef } from "../../../../lib/payments/plans.ts";
 import { fetchOrder, fetchPayment, isValidSignature } from "../../../../lib/payments/razorpay.ts";
@@ -12,6 +13,7 @@ import { signToken, type Entitlement } from "../../../../lib/payments/token.ts";
 const DAY_MS = 86_400_000;
 
 export async function POST(request: Request): Promise<Response> {
+  if (!paymentsEnabled()) return Response.json({ error: "payments_disabled" }, { status: 503 });
   let body: { orderId?: unknown; paymentId?: unknown; signature?: unknown };
   try {
     body = await request.json();

@@ -11,6 +11,7 @@ import type { Exercise, PlanDay, PlannedExercise, UserProfile } from "@/lib/type
 import { CheckIcon, ChevronDownIcon, ClockIcon, InfoIcon, PlayIcon } from "./Icons";
 import ExerciseDemo from "./ExerciseDemo";
 import ProgressSummary from "./ProgressSummary";
+import WelcomeOffer from "./WelcomeOffer";
 
 const exerciseById = new Map(library.map((e) => [e.id, e]));
 
@@ -57,7 +58,8 @@ export default function PlanView({ profile }: { profile: UserProfile }) {
           ))}
         </div>
 
-        <div className="mt-5">
+        <div className="mt-5 space-y-4">
+          <WelcomeOffer />
           <ProgressSummary profile={profile} />
         </div>
 

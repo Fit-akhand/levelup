@@ -7,9 +7,12 @@
 // code signs on the server and verifies in the browser.
 import type { PlanId } from "./plans.ts";
 
+// A pass comes from buying a plan, or from redeeming a free coupon.
+export type PassKind = PlanId | "coupon";
+
 export interface Entitlement {
   v: 1;
-  planId: PlanId;
+  planId: PassKind;
   paymentId: string;
   issuedAt: number; // ms since 1970
   expiresAt: number;

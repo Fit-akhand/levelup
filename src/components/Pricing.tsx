@@ -4,7 +4,8 @@ import { useState } from "react";
 import { CheckIcon, SparkleIcon } from "./Icons";
 import { PLANS, FREE_FEATURES, PLUS_FEATURES, formatRupees, type PlanId } from "@/lib/payments/plans";
 import { verifyToken } from "@/lib/payments/token";
-import { publicKey, saveToken, useEntitlement } from "@/lib/entitlement";
+import { publicKey, saveToken, useCouponUsed, useEntitlement } from "@/lib/entitlement";
+import RedeemCoupon from "./RedeemCoupon";
 
 // Razorpay's checkout script adds this to the page. We only declare the parts we use.
 interface RazorpayResult {
@@ -37,6 +38,7 @@ const ERRORS: Record<string, string> = {
 
 export default function Pricing() {
   const { status, entitlement, token } = useEntitlement();
+  const couponUsed = useCouponUsed(); // undefined = loading, null = not used yet
   const [planId, setPlanId] = useState<PlanId>("plus_quarter");
   const [adult, setAdult] = useState(false); // "I am 18+, or a parent/guardian paying"
   const [busy, setBusy] = useState(false);
@@ -132,11 +134,13 @@ export default function Pricing() {
       <h1 className="flex items-center gap-2 text-3xl font-extrabold tracking-tight sm:text-4xl">
         Level Up <span className="text-accent">Plus</span> <SparkleIcon size={28} />
       </h1>
-      <p className="mt-1 text-muted">Workouts stay free forever. Plus adds your personal meal plans for less than the price of a chai.</p>
+      <p className="mt-1 text-muted">Your guide for the start of your fitness journey. Workouts stay free forever. Plus adds your personal meal plans for less than the price of a chai.</p>
 
       {status === "plus" && entitlement && (
         <section className="card mt-5 border-primary p-4" aria-label="Your Plus pass">
-          <p className="font-bold text-accent">You have Level Up Plus</p>
+          <p className="font-bold text-accent">
+            You have Level Up Plus{entitlement.planId === "coupon" ? " (free month)" : ""}
+          </p>
           <p className="text-sm text-muted">
             Valid until {new Date(entitlement.expiresAt).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}
           </p>
@@ -150,6 +154,15 @@ export default function Pricing() {
               {copied ? "Copied" : "Copy code"}
             </button>
           </details>
+        </section>
+      )}
+
+      {/* Free-month coupon: only offered to people without Plus who have not used it yet */}
+      {status === "free" && couponUsed === null && (
+        <section className="card mt-5 p-4" aria-label="Coupon">
+          <h2 className="font-bold">Have a coupon?</h2>
+          <p className="mb-3 mt-0.5 text-sm text-muted">New here? A coupon gives you a free month of Plus.</p>
+          <RedeemCoupon />
         </section>
       )}
 

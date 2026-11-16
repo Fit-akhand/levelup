@@ -19,6 +19,13 @@ const store = createLocalStore<string>("levelup.entitlement.v1", parseToken);
 export const saveToken = store.save;
 export const clearToken = store.clear;
 
+// Remembers that this device has already claimed its free month (even after the pass expires).
+// It is only a per-device memory: someone who clears their browser data could claim again, which
+// is the limit of an app without accounts (see PAYMENTS.md).
+const couponStore = createLocalStore<string>("levelup.coupon.v1", parseToken);
+export const useCouponUsed = couponStore.useValue; // undefined = loading, null = not used yet, string = the code used
+export const markCouponUsed = couponStore.save;
+
 // The PUBLIC key is safe to ship in the app (it can only check passes, never make them).
 export function publicKey(): JsonWebKey | null {
   try {
