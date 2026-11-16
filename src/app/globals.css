@@ -1,26 +1,135 @@
 @import "tailwindcss";
 
+/*
+  DESIGN TOKENS
+  Every color in the app comes from these named variables, so changing the look
+  (or adding a theme) means editing this block, not hunting through components.
+  Contrast note: the green button uses DARK text, because white on this green is hard to read.
+*/
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --background: #f6f9f7;
+  --foreground: #0d1512;
+  --surface: #ffffff;
+  --line: #dfe7e3;
+  --muted: #55655e;
+  --primary: #10b981;
+  --on-primary: #022c22;
+  --accent-text: #047857;
+  --tint: rgba(16, 185, 129, 0.1);
+  --glow: rgba(16, 185, 129, 0.18);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #0a0f0d;
+    --foreground: #eef4f1;
+    --surface: #121a17;
+    --line: #23302b;
+    --muted: #94a69d;
+    --primary: #10b981;
+    --on-primary: #022c22;
+    --accent-text: #34d399;
+    --tint: rgba(52, 211, 153, 0.12);
+    --glow: rgba(16, 185, 129, 0.22);
   }
+}
+
+/* Makes the variables usable as Tailwind classes: bg-surface, text-muted, border-line... */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-line: var(--line);
+  --color-muted: var(--muted);
+  --color-primary: var(--primary);
+  --color-on-primary: var(--on-primary);
+  --color-accent: var(--accent-text);
+  --color-tint: var(--tint);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Keyboard users get a clear focus ring everywhere. */
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 3px;
+}
+
+@layer components {
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 3rem; /* 48px: a comfortable touch target on phones */
+    padding: 0.75rem 1.5rem;
+    border-radius: 9999px;
+    font-weight: 700;
+    transition: transform 0.15s ease, filter 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+  }
+  .btn:active {
+    transform: scale(0.97);
+  }
+  .btn-primary {
+    background: var(--primary);
+    color: var(--on-primary);
+    box-shadow: 0 6px 20px -8px var(--primary);
+  }
+  .btn-primary:hover {
+    filter: brightness(1.08);
+  }
+  .btn-sm {
+    min-height: 2.5rem;
+    padding: 0.5rem 1.1rem;
+    font-size: 0.875rem;
+  }
+  .btn-ghost {
+    border: 2px solid var(--line);
+    color: var(--foreground);
+  }
+  .btn-ghost:hover {
+    border-color: var(--primary);
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 1.25rem;
+  }
+}
+
+/* Gentle entrance animation for screens and cards. */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-rise {
+  animation: rise 0.4s ease-out both;
+}
+
+/* Respect users who ask their device to reduce motion. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

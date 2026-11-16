@@ -6,7 +6,12 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "check:library": "node scripts/check-library.ts",
+    "test": "node --test src/lib/engine/generatePlan.test.ts src/lib/gamification.test.ts src/lib/demo/demo.test.ts src/lib/diet/diet.test.ts src/lib/payments/payments.test.ts",
+    "plan": "node scripts/preview-plan.ts",
+    "diet": "node scripts/preview-diet.ts",
+    "keys": "node scripts/generate-keys.ts"
   },
   "dependencies": {
     "next": "16.4.6",
